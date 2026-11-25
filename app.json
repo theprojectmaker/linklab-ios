@@ -34,6 +34,17 @@
     "plugins": [
       "expo-router",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "fe150cdb-a764-4256-956e-3f5a2e468904"
+      }
+    },
+    "owner": "solomonsasson"
   }
 }
