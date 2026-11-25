@@ -18,7 +18,8 @@ const CONNECT_TIMEOUT_MS = 3000;
  */
 async function testNative(host: string, port: number): Promise<ReachResult> {
   // Lazy require: this native module isn't available in the Expo web preview bundle.
-  const TcpSocket = require('react-native-tcp-socket').default;
+  // Plain CommonJS export (module.exports = {...}), NOT a default export.
+  const TcpSocket = require('react-native-tcp-socket');
   return new Promise((resolve) => {
     const start = Date.now();
     let settled = false;

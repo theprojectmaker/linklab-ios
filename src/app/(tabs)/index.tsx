@@ -91,6 +91,13 @@ export default function RunScreen() {
           </Text>
         </View>
 
+        {scan.fatalError && (
+          <View style={{ backgroundColor: '#3A1414', borderColor: colors.danger, borderWidth: 1, borderRadius: 10, padding: 10 }}>
+            <Text style={{ color: colors.danger, fontWeight: '700', fontSize: 12 }}>SCAN FAILED TO START</Text>
+            <Text style={{ color: colors.danger, fontSize: 12, marginTop: 2 }}>{scan.fatalError}</Text>
+          </View>
+        )}
+
         {scan.status === 'idle' && (
           <Pressable
             onPress={scan.start}

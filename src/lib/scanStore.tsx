@@ -18,6 +18,7 @@ interface ScanState {
   lastRun: RunDetail | null;
   options: ScanOptions;
   isSimulated: boolean;
+  fatalError: string | null;
 }
 
 interface ScanContextValue extends ScanState {
@@ -37,12 +38,14 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [lastRun, setLastRun] = useState<RunDetail | null>(null);
   const [options, setOptionsState] = useState<ScanOptions>(DEFAULT_OPTIONS);
+  const [fatalError, setFatalError] = useState<string | null>(null);
   const runnerRef = useRef<ScanRunner | null>(null);
 
   const start = useCallback(() => {
     if (runnerRef.current) return;
     setStatus('running');
     setProgress(null);
+    setFatalError(null);
 
     const runner = new ScanRunner({
       concurrency: options.concurrency,
@@ -64,7 +67,11 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       },
     });
     runnerRef.current = runner;
-    runner.run();
+    runner.run().catch((err) => {
+      runnerRef.current = null;
+      setStatus('idle');
+      setFatalError(err instanceof Error ? err.message : String(err));
+    });
   }, [options]);
 
   const pause = useCallback(() => {
@@ -91,6 +98,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     lastRun,
     options,
     isSimulated: isSimulatedEnvironment,
+    fatalError,
     start,
     pause,
     resume,
