@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { CategoryBucket, TestResult } from '../lib/types';
 import { colors } from '../lib/theme';
 import { PORT_CATEGORY_LABELS } from '../lib/ports';
+import { ResultBadge } from './ResultBadge';
 
 const DEST_LABELS: Record<string, string> = {
   dns: 'DNS resolvers',
@@ -37,10 +38,22 @@ export function BucketRow({ bucket, sampleResults }: { bucket: CategoryBucket; s
             <Text style={{ color: colors.textDim, fontSize: 11 }}>No open/refused ports sampled in this bucket.</Text>
           ) : (
             matching.slice(0, 50).map((r, i) => (
-              <Text key={i} style={{ color: colors.textDim, fontSize: 11 }}>
-                {r.host}:{r.port} — {r.status}
-                {r.latencyMs ? ` (${r.latencyMs}ms)` : ''}
-              </Text>
+              <View
+                key={i}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 4,
+                  borderBottomWidth: i < Math.min(matching.length, 50) - 1 ? 1 : 0,
+                  borderBottomColor: colors.cardBorder,
+                }}
+              >
+                <Text numberOfLines={1} style={{ color: colors.text, fontSize: 12, flex: 1, marginRight: 8 }}>
+                  {r.host}:{r.port}
+                </Text>
+                <ResultBadge result={r} />
+              </View>
             ))
           )}
         </View>
