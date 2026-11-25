@@ -25,12 +25,15 @@ export default function AboutScreen() {
         </Section>
 
         <Section title="HOW THE TEST SET IS BUILT">
-          {describeTargetSet()}. The destinations are a small, fixed list of large, publicly documented services
-          that exist specifically to be probed — public DNS resolvers, public NTP servers, major CDN/cloud
-          providers, and speedtest-style endpoints. This is not a list of open or anonymizing proxy servers; no
-          such list is shipped or scraped. Breadth comes from testing a wide range of well-known and registered
-          TCP ports against each of those few, highly-redundant anchors — the same approach ordinary "port
-          checker" and firewall-diagnostic tools use, just run at a larger, throttled scale.
+          {describeTargetSet()}. The destinations are a fixed list of 50 large, publicly documented services
+          that exist specifically to be probed or operate at massive, redundant scale — public DNS resolvers,
+          public NTP servers, major CDN/cloud providers, Apple/iCloud infrastructure, speedtest-style endpoints,
+          and a short list of huge public-web services (Wikipedia, GitHub, etc). This is not a list of open or
+          anonymizing proxy servers, and it is not a general "every website" scanner; no such list is shipped or
+          scraped. "Proxy" coverage comes from the PORT axis — SOCKS/VPN/HTTP-proxy ports tested against these
+          same legitimate anchors, not a list of real proxy servers to route through. Breadth comes from testing
+          a wide range of well-known and registered TCP ports against each of those anchors — the same approach
+          ordinary "port checker" and firewall-diagnostic tools use, just run at a larger, throttled scale.
         </Section>
 
         <Section title="WHY NOT A REAL PROXY LIST">

@@ -9,6 +9,8 @@ const DEST_LABELS: Record<string, string> = {
   ntp: 'NTP servers',
   'cdn-cloud': 'CDN / cloud anchors',
   speedtest: 'Speedtest hosts',
+  'apple-icloud': 'Apple / iCloud',
+  'public-web': 'Public web anchors',
 };
 
 export function BucketRow({ bucket, sampleResults }: { bucket: CategoryBucket; sampleResults: TestResult[] }) {

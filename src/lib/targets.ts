@@ -3,10 +3,11 @@ import { buildPortCatalog } from './ports';
 import { Destination, PortDef } from './types';
 
 // 1..MAX_PORT covers every IANA well-known port (0-1023) plus the first
-// ~7400 registered ports. Combined with DESTINATIONS.length anchors this
-// lands the full target set in the 150k-175k range the test was scoped to,
-// via breadth of port coverage rather than a scraped destination list.
-export const MAX_PORT = 8400;
+// ~9000 registered ports. Combined with DESTINATIONS.length anchors (50)
+// this lands the full target set at exactly 500,000, via breadth of port
+// coverage and a wider-but-still-curated anchor list, rather than a scraped
+// destination list or arbitrary "any website" scanning.
+export const MAX_PORT = 10000;
 
 export const PORT_CATALOG: PortDef[] = buildPortCatalog(MAX_PORT);
 

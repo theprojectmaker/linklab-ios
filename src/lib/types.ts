@@ -2,7 +2,9 @@ export type DestinationCategory =
   | 'dns'
   | 'ntp'
   | 'cdn-cloud'
-  | 'speedtest';
+  | 'speedtest'
+  | 'apple-icloud'
+  | 'public-web';
 
 export interface Destination {
   id: string;
