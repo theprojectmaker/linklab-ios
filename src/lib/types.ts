@@ -4,7 +4,8 @@ export type DestinationCategory =
   | 'cdn-cloud'
   | 'speedtest'
   | 'apple-icloud'
-  | 'public-web';
+  | 'public-web'
+  | 'public-web-broad';
 
 export interface Destination {
   id: string;

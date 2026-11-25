@@ -11,6 +11,7 @@ const DEST_LABELS: Record<string, string> = {
   speedtest: 'Speedtest hosts',
   'apple-icloud': 'Apple / iCloud',
   'public-web': 'Public web anchors',
+  'public-web-broad': 'Broad web destinations (top domains)',
 };
 
 export function BucketRow({ bucket, sampleResults }: { bucket: CategoryBucket; sampleResults: TestResult[] }) {

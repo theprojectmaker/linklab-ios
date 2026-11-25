@@ -134,6 +134,28 @@ export function buildPortCatalog(maxPort: number): PortDef[] {
   return out;
 }
 
+/** Builds PortDefs for an arbitrary explicit list of port numbers (not a contiguous range). */
+export function buildPortList(ports: number[]): PortDef[] {
+  return ports.map((port) => {
+    const known = NAMED_PORTS[port];
+    if (known) return { port, name: known.name, category: known.category };
+    return {
+      port,
+      name: port <= 1023 ? `Well-known (unnamed) ${port}` : `Registered ${port}`,
+      category: fallbackCategory(port),
+    };
+  });
+}
+
+// The small, meaningful port set used against the broad (thousands-strong)
+// destination tier — full 1-65535 sweeps only happen against the curated
+// anchor list; broad destinations get checked on the ports that actually
+// matter for "what classes of traffic does this network allow".
+export const BROAD_TIER_PORTS = [
+  80, 443, 53, 22, 21, 23, 25, 587, 465, 110, 995, 143, 993, 3389, 1080, 3128, 8080, 1194,
+  51820, 500,
+];
+
 export const PORT_CATEGORY_LABELS: Record<PortCategory, string> = {
   web: 'Web (HTTP/HTTPS)',
   mail: 'Mail',

@@ -24,16 +24,24 @@ export default function AboutScreen() {
           your current network allows or blocks.
         </Section>
 
-        <Section title="HOW THE TEST SET IS BUILT">
-          {describeTargetSet()}. The destinations are a fixed list of 50 large, publicly documented services
-          that exist specifically to be probed or operate at massive, redundant scale — public DNS resolvers,
-          public NTP servers, major CDN/cloud providers, Apple/iCloud infrastructure, speedtest-style endpoints,
-          and a short list of huge public-web services (Wikipedia, GitHub, etc). This is not a list of open or
-          anonymizing proxy servers, and it is not a general "every website" scanner; no such list is shipped or
-          scraped. "Proxy" coverage comes from the PORT axis — SOCKS/VPN/HTTP-proxy ports tested against these
-          same legitimate anchors, not a list of real proxy servers to route through. Breadth comes from testing
-          a wide range of well-known and registered TCP ports against each of those anchors — the same approach
-          ordinary "port checker" and firewall-diagnostic tools use, just run at a larger, throttled scale.
+        <Section title="HOW THE TEST SET IS BUILT (TWO TIERS)">
+          {describeTargetSet()}.{'\n\n'}
+          <Text style={{ fontWeight: '700' }}>Anchor tier (100 destinations):</Text> a fixed list of large,
+          publicly documented services that exist specifically to be probed or operate at massive, redundant
+          scale — public DNS resolvers, public NTP servers, major CDN/cloud providers, Apple/iCloud
+          infrastructure, speedtest-style endpoints, and public-web giants (Wikipedia, GitHub, etc). These get
+          the full TCP port sweep, 1–65,535.{'\n\n'}
+          <Text style={{ fontWeight: '700' }}>Broad tier (~4,950 destinations):</Text> ordinary popular websites
+          pulled from the Majestic Million — a standard, openly published top-domains ranking used throughout
+          the security/networking industry. This is <Text style={{ fontWeight: '700' }}>not</Text> a proxy list
+          and provides no working proxy; it's the same trust model as any ordinary site-categorization or
+          firewall test. Testing every one of these on the full 65,535-port range would be ~327 million
+          connection attempts — not a "lab test" any throttle could finish, and volume that would read as
+          abusive scanning on any real network. So the broad tier only checks ~20 ports that actually matter
+          (web, mail, DNS, SSH, RDP, common proxy/VPN ports), keeping the total in the tens of millions instead.
+          {'\n\n'}
+          "Proxy" coverage, at both tiers, is still only the PORT axis — SOCKS/VPN/HTTP-proxy ports tested
+          against real destinations, never a list of real proxy servers to route through.
         </Section>
 
         <Section title="WHY NOT A REAL PROXY LIST">
