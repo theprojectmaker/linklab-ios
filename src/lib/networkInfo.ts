@@ -1,26 +1,28 @@
-import NetInfo from '@react-native-community/netinfo';
 import * as Network from 'expo-network';
 import { NetworkSnapshot } from './types';
 
 /**
- * iOS restricts SSID access without the special NEHotspotHelper /
- * Access-WiFi-Information entitlement (an Apple-approval-gated capability,
- * not something a standalone indie app can self-grant). When unavailable,
- * ssid comes back null and the UI says so rather than guessing.
+ * Deliberately does NOT use @react-native-community/netinfo's SSID field.
+ * On iOS, reading SSID requires Apple's gated Access-WiFi-Information
+ * entitlement, and the native code path that attempts it can hard-crash the
+ * app ("attempted to access privacy-sensitive data without a usage
+ * description") without the exact Info.plist/entitlement setup that
+ * entitlement expects — not worth the crash risk for a value we can't get
+ * real data for anyway on a standalone indie app. Connection type/state
+ * comes entirely from expo-network (no location/SSID entanglement at all).
+ * SSID is always reported unavailable; the UI says so rather than guessing.
  */
 export async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
-  const [netInfoState, ipAddress] = await Promise.all([
-    NetInfo.fetch(),
+  const [state, ipAddress] = await Promise.all([
+    Network.getNetworkStateAsync().catch(() => null),
     Network.getIpAddressAsync().catch(() => null),
   ]);
 
-  const details = netInfoState.details as { ssid?: string | null } | null;
-
   return {
-    ssid: details?.ssid ?? null,
+    ssid: null,
     ipAddress,
-    isWifi: netInfoState.type === 'wifi',
-    isConnected: netInfoState.isConnected ?? null,
+    isWifi: state?.type === Network.NetworkStateType.WIFI,
+    isConnected: state?.isConnected ?? null,
     capturedAt: Date.now(),
   };
 }
