@@ -30,7 +30,9 @@ export default function AboutScreen() {
           publicly documented services that exist specifically to be probed or operate at massive, redundant
           scale — public DNS resolvers, public NTP servers, major CDN/cloud providers, Apple/iCloud
           infrastructure, speedtest-style endpoints, and public-web giants (Wikipedia, GitHub, etc). These get
-          the full TCP port sweep, 1–65,535.{'\n\n'}
+          checked against every port with an actual, named, real-world service behind it (web, mail, DNS, SSH,
+          RDP, databases, gaming, proxy/VPN, etc) — not a blind 1–65,535 sweep, since almost none of those port
+          numbers have any service at all and testing them produces no real signal.{'\n\n'}
           <Text style={{ fontWeight: '700' }}>Broad tier (~4,950 destinations):</Text> ordinary popular websites
           pulled from the Majestic Million — a standard, openly published top-domains ranking used throughout
           the security/networking industry. This is <Text style={{ fontWeight: '700' }}>not</Text> a proxy list

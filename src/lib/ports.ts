@@ -111,27 +111,18 @@ function fallbackCategory(port: number): PortCategory {
 }
 
 /**
- * Builds the full port catalog from 1..maxPort. Known ports get a friendly
- * name + accurate category; everything else is still a real, testable port
- * number, labeled generically and bucketed as "other-registered" (or
- * "well-known (unnamed)" for <1024) so results stay honest about what was
- * actually tested.
+ * Builds the catalog of only the ports that actually have a known,
+ * real-world service behind them (the NAMED_PORTS table above). Used for the
+ * anchor tier instead of a blind 1-65535 sweep: a result like "apple.com : 8"
+ * (port 8 has no assigned service at all) is noise, not a real link, and
+ * made the scan both slower (thousands of guaranteed-filtered dead ports per
+ * host) and confusing to read.
  */
-export function buildPortCatalog(maxPort: number): PortDef[] {
-  const out: PortDef[] = new Array(maxPort);
-  for (let port = 1; port <= maxPort; port++) {
-    const known = NAMED_PORTS[port];
-    if (known) {
-      out[port - 1] = { port, name: known.name, category: known.category };
-    } else {
-      out[port - 1] = {
-        port,
-        name: port <= 1023 ? `Well-known (unnamed) ${port}` : `Registered ${port}`,
-        category: fallbackCategory(port),
-      };
-    }
-  }
-  return out;
+export function buildNamedPortCatalog(): PortDef[] {
+  return Object.keys(NAMED_PORTS)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map((port) => ({ port, name: NAMED_PORTS[port].name, category: NAMED_PORTS[port].category }));
 }
 
 /** Builds PortDefs for an arbitrary explicit list of port numbers (not a contiguous range). */
