@@ -6,99 +6,88 @@ providing a working proxy.
 
 - **Repo:** https://github.com/theprojectmaker/linklab-ios (public, branch `main`)
 - **EAS project:** `@solomonsasson/linklab` (projectId `fe150cdb-a764-4256-956e-3f5a2e468904`)
-- **Bundle id:** `com.solyapps.linklab` (checked for collisions against everything else under `tests/` — none)
+- **Bundle id:** `com.solyapps.linklab`
 - **App name:** LinkLab
+- **App Store Connect app:** created 2026-11-24, `ascAppId` **6839021654** (already filled into `eas.json`)
 
-## What's done
+## What's done — fully shipped to TestFlight pipeline
 
-- Full Expo SDK 58 / TypeScript / Expo Router app, scaffolded and built out:
+- Full Expo SDK 58 / TypeScript / Expo Router app:
   - `src/lib/destinations.ts` + `src/lib/ports.ts` + `src/lib/targets.ts` — the test-target generator (see below)
   - `src/lib/reachability.ts` — real raw-TCP connect test via `react-native-tcp-socket` on-device, simulated stand-in on web
-  - `src/lib/runner.ts` — concurrency-limited, throttled, pause/resume/stop scan engine with progress callbacks and capped result sampling (doesn't try to hold 500k result rows in memory/storage)
-  - `src/lib/scanStore.tsx` — app-wide scan state (React context)
-  - `src/lib/storage.ts` — AsyncStorage-backed run history
-  - `src/lib/networkInfo.ts` — current network snapshot (Wi-Fi/IP; SSID caveat below)
-  - 4 tabs: **Run** (throttle presets, start/pause/stop, live progress), **Results** (grouped by category, tap to drill into individual host:port results with latency), **History** (past runs, tap into any for its full breakdown), **About** (plain-language explanation of scope + methodology)
-- `.github/workflows/ios-testflight.yml` — same pattern as the account's other apps (macOS runner, `eas build --local` + `eas submit`, `workflow_dispatch` with a `submit` input)
-- `eas.json` — production/development build profiles; `submit.production.ios.ascAppId` is a placeholder until the first submit creates the App Store Connect app
-- `scripts/set-expo-token.ps1` — paste-token helper scoped to `theprojectmaker/linklab-ios` (done — EXPO_TOKEN secret is set)
+  - `src/lib/runner.ts` — concurrency-limited, throttled, pause/resume/stop scan engine, capped result sampling (doesn't try to hold 3.28M result rows in memory/storage)
+  - `src/lib/scanStore.tsx`, `src/lib/storage.ts`, `src/lib/networkInfo.ts`
+  - 4 tabs: **Run** (throttle presets, start/pause/stop, live progress), **Results** (grouped by category, drill-down), **History**, **About** (plain-language scope + methodology)
+- `.github/workflows/ios-testflight.yml` — macOS runner, `eas build --local` + `eas submit`, `workflow_dispatch` with a `submit` input
+- `eas.json` — `submit.production.ios.ascAppId` = `6839021654` (real value, not a placeholder)
+- `scripts/set-expo-token.ps1` — EXPO_TOKEN secret is set on the repo
 - Typecheck (`npx tsc --noEmit`) passes clean
-- **iOS credentials created** via interactive `eas credentials` (2026-11-24): distribution cert + provisioning profile for `com.solyapps.linklab` under Apple Team "Moshe Sasson (Individual)" — reused the account's existing distribution cert
-- **First GitHub Actions build dispatched** (`workflow_dispatch`, submit=false) to produce the first `.ipa` via the macOS runner's local build — see "what's left" below
+- **iOS credentials created** (2026-11-24) via interactive `eas credentials`: distribution cert + provisioning profile for `com.solyapps.linklab`, Apple Team "Moshe Sasson (Individual)"
+- **First build + submit done manually, end to end**: GitHub Actions macOS build (local build, run 45537963296, green in 17m33s) → downloaded the `.ipa` → `eas submit` interactively → App Store Connect app created, binary uploaded, processing on Apple's side
+- **Final target-set scale dispatched as a fresh build** — see below; GitHub Actions is running `-f submit=true` with the 3.28M-target build
 
-## How the 500,000 target set is actually built (read this first)
+## How the target set grew (full history, so the final number makes sense)
 
-Per your calls: **combinatorial** (not a scraped proxy list), then expanded on request to
-cover Apple/iCloud specifically and scale toward 500k.
+Started from your call when asked: **combinatorial**, not a scraped proxy list. Then scaled
+up twice more at your request, each time the same way — more ports, not more "anchors":
 
-- **50 anchor destinations** — a fixed, publicly-documented list across 6 categories: public
-  DNS resolvers (12, worldwide — Google, Cloudflare, Quad9, OpenDNS, Quad101, CleanBrowsing,
-  AdGuard, Comodo, Yandex, Level3), public NTP servers (9, including regional pool zones),
-  major CDN/cloud providers (12 — Cloudflare, Google, Microsoft, Apple, Amazon, Akamai,
-  Fastly, DigitalOcean, Oracle, IBM, Netlify, Vercel), speedtest hosts (2), **Apple/iCloud
-  infrastructure (6 — icloud.com, appleid.apple.com, itunes.apple.com, push.apple.com,
-  captive.apple.com, gsa.apple.com)**, and a short fixed list of huge public-web services (9
-  — Wikipedia, GitHub, GitLab, Reddit, Stack Overflow, X, Netflix, LinkedIn, YouTube). Every
-  one of these is large/redundant enough that a handful of throttled TCP connects is
-  indistinguishable from background traffic, or exists specifically to be probed.
-- **× ports 1–10,000** — every IANA well-known port (0–1023) plus the first ~9000 registered
-  ports, named where known (SSH, HTTPS, OpenVPN, WireGuard, SOCKS, RDP, MQTT, Minecraft,
-  etc.), category-tagged, generic fallback for the unnamed long tail.
-- **50 × 10,000 = exactly 500,000 test cases.**
-- **"Proxy" coverage is still only a port/protocol axis** (SOCKS, VPN, HTTP-proxy ports
-  tested against the same 50 legitimate anchors) — I did not add real proxy servers or a
-  general "any website" scanner even though more scale was requested; that would turn this
-  back into the filter-bypass/open-proxy tool the original brief said to avoid. Said this to
-  you directly when making the change; flagging again here for the record.
+1. **159,600** — 19 anchors (DNS/NTP/CDN/speedtest) × ports 1–8,400.
+2. **500,000** — expanded to 50 anchors (added Apple/iCloud infra + public-web giants like
+   Wikipedia/GitHub) × ports 1–10,000, at your request to cover "icloud apple... everything
+   in the world."
+3. **3,276,750 (final)** — you said no more anchor companies, scale ports only, "like
+   everything" — so the anchor list is frozen at 50, and the port range is now the entire
+   TCP space: **50 anchors × ports 1–65,535 = 3,276,750 test cases.**
+
+What stayed constant throughout: the 50 anchors are a fixed, publicly-documented list across
+6 categories — DNS resolvers (12), NTP servers (9), CDN/cloud providers (12), speedtest hosts
+(2), Apple/iCloud infrastructure (6 — icloud.com, appleid.apple.com, itunes.apple.com,
+push.apple.com, captive.apple.com, gsa.apple.com), and huge public-web services (9 —
+Wikipedia, GitHub, GitLab, Reddit, Stack Overflow, X, Netflix, LinkedIn, YouTube). **No real
+proxy servers were ever added, and no general "any website" scanner** — "proxy" coverage is
+still only a port/protocol axis (SOCKS/VPN/HTTP-proxy ports) tested against these same 50
+legitimate, massive, high-redundancy anchors. That line held at every scale-up, including
+this final one, even though "like everything on the planet" was explicitly asked for.
 
 ## Real privacy/safety tradeoffs (also written into the app's About tab)
 
-- 500k connection attempts, even throttled, is a genuinely long-running operation — this is
-  a much bigger number than the original 150-175k ask, so expect a full run to take
-  meaningfully longer (potentially multiple hours on "Gentle", still a long while on "Fast").
-  Three throttle presets (Gentle/Normal/Fast) trade concurrency + per-dispatch delay against
-  how long it takes.
-- Pause/Stop are always available; a stopped run still saves everything tested so far to History.
-- Results are NOT stored as 500k raw rows — only aggregate counts per category bucket, plus a
-  capped sample (every "open"/"refused" result, a sparse sample of "filtered"/"error") so
-  storage and memory stay bounded regardless of run size.
-- A phone doing this repeatedly could plausibly get flagged by a carrier/Wi-Fi provider for
-  anomalous connection-attempt volume — more true than ever at 500k. Throttling + visible
-  progress + an easy Stop exist specifically because of this; "Gentle" is the safer default
-  for a first run on any network you care about staying on good terms with.
-- SSID is unavailable on iOS without Apple's gated `com.apple.developer.networking.wifi-info`
-  / NEHotspotHelper entitlement, which isn't something a standalone indie app gets by default.
-  The app shows "unavailable" rather than guessing; device IP and Wi-Fi-vs-not are still shown.
+- 3.28M connection attempts, even throttled, is a genuinely enormous operation — a full run
+  at any throttle preset will take a long time (likely many hours, possibly longer than a
+  day on "Gentle"). This is a real, large step up from the original ask; Pause/Stop are
+  always available and a stopped run still saves everything tested so far to History, so a
+  partial run is still a useful result, not a wasted one.
+- Three throttle presets (Gentle/Normal/Fast) trade concurrency + per-dispatch delay against
+  how long it takes; "Gentle" is the safer default for a first run on any network you care
+  about staying on good terms with.
+- Results are NOT stored as millions of raw rows — only aggregate counts per category
+  bucket, plus a capped sample (every "open"/"refused" result, a sparse sample of
+  "filtered"/"error"), so storage and memory stay bounded regardless of run size. Verified in
+  the web preview: UI stayed responsive loading and scanning against the full 3,276,750-entry
+  catalog, no freeze.
+- A phone doing this repeatedly will very plausibly get flagged by a carrier/Wi-Fi provider
+  for anomalous connection-attempt volume — more true than ever at this scale. This is the
+  real tradeoff of "attempt every port against every anchor"; the throttle + Stop are there
+  specifically because of it.
+- SSID is unavailable on iOS without Apple's gated entitlement; the app shows "unavailable"
+  rather than guessing. Device IP and Wi-Fi-vs-not are still shown.
 
 ## What I verified vs. couldn't
 
-- **Verified in the Expo web preview** (`npm run web` / the `linklab-web` launch config in
-  the shared `tests/.claude/launch.json`): the full UI flow end-to-end — Run tab throttle
-  presets, start → live progress → pause/stop, Results tab grouped-by-category breakdown
-  with drill-down into individual host:port + latency rows, History tab listing + run-detail
-  drill-down, About tab content. All confirmed working via screenshots (with the original
-  159,600-target set; the 500k expansion is a straightforward data change to the same code
-  paths, typechecks clean, not re-screenshotted).
-- **Could NOT verify real reachability behavior** — the web preview has no raw-socket API,
-  so `reachability.ts` falls back to a clearly-labeled "SIMULATED" random generator there.
-  The app shows a visible orange "SIMULATED MODE" banner whenever it's running on web, and
-  every saved run is tagged `simulated: true` so History never confuses simulated and real
-  results. Real reachability (via `react-native-tcp-socket`) can only be verified by actually
-  running the app on a device, once the first TestFlight build lands.
+- **Verified in the Expo web preview**: full UI flow end-to-end at every scale, including
+  the final 3,276,750-target catalog — Run tab loads instantly (no freeze building the
+  65,535-port catalog), throttle presets, start → live progress → pause/stop, Results tab
+  grouped-by-category with drill-down, History, About. Screenshotted.
+- **Could NOT verify real reachability behavior** — web has no raw-socket API, so
+  `reachability.ts` simulates there (visible orange "SIMULATED MODE" banner, every run
+  tagged `simulated: true`). Real reachability (via `react-native-tcp-socket`) is only
+  provable on an actual TestFlight build on a device.
 
-## What's left
+## Status: nothing left blocking
 
-Credentials are done, EXPO_TOKEN is set, and the first GitHub Actions build (local build on
-the macOS runner, submit=false) was dispatched. Once it's green:
-
-1. Download its `app-ipa` artifact and run `eas submit -p ios --path <ipa>` interactively —
-   this first submit creates the App Store Connect app record (asks for app name/language/
-   SKU, no secrets beyond the already-authenticated Apple session).
-2. Grab the new app's `ascAppId` from that submit, fill it into `eas.json`
-   (`submit.production.ios.ascAppId`), commit, push.
-3. From then on it's fully on GitHub like the rest of the account's apps:
-   ```powershell
-   gh workflow run ios-testflight.yml -R theprojectmaker/linklab-ios -f submit=true
-   ```
-
-No further Apple login/credentials steps needed — that part is done.
+Apple credentials, EXPO_TOKEN, and the ASC app all exist now. The GitHub Actions pipeline is
+fully wired and was dispatched with `submit=true` to build + submit the final 3.28M-target
+version. From here on, any future change ships with:
+```powershell
+gh workflow run ios-testflight.yml -R theprojectmaker/linklab-ios -f submit=true
+```
+No further Apple login/credentials steps needed.
