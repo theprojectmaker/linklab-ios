@@ -31,7 +31,7 @@ interface ScanContextValue extends ScanState {
 
 const ScanContext = createContext<ScanContextValue | null>(null);
 
-const DEFAULT_OPTIONS: ScanOptions = { concurrency: 24, delayMs: 2 };
+const DEFAULT_OPTIONS: ScanOptions = { concurrency: 48, delayMs: 0 };
 
 export function ScanProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<ScanStatus>('idle');

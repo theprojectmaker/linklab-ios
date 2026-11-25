@@ -11,9 +11,9 @@ import { StatPill } from '../../components/StatPill';
 import { LiveResultsFeed } from '../../components/LiveResultsFeed';
 
 const CONCURRENCY_PRESETS = [
-  { label: 'Gentle', concurrency: 8, delayMs: 8 },
-  { label: 'Normal', concurrency: 24, delayMs: 2 },
-  { label: 'Fast', concurrency: 48, delayMs: 0 },
+  { label: 'Gentle', concurrency: 16, delayMs: 2 },
+  { label: 'Normal', concurrency: 48, delayMs: 0 },
+  { label: 'Fast', concurrency: 100, delayMs: 0 },
 ];
 
 export default function RunScreen() {

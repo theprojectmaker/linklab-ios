@@ -6,7 +6,13 @@ export interface ReachResult {
   latencyMs?: number;
 }
 
-const CONNECT_TIMEOUT_MS = 3000;
+// Real open/refused ports resolve in well under a second; only a truly
+// filtered/dropped port ever waits out the full timeout. 3000ms made a
+// filtered-heavy sweep (e.g. the full 1-65535 range on one host) crawl at
+// single digits per second — most SYNs to closed cloud/CDN ports get
+// silently dropped, not RST'd, so they ALWAYS hit this timeout. Cut to
+// 900ms, which is still generous for any real response.
+const CONNECT_TIMEOUT_MS = 900;
 
 /**
  * Raw TCP reachability test, used on native (iOS) builds via
