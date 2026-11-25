@@ -98,4 +98,7 @@ export interface ScanProgress {
   filteredCount: number;
   errorCount: number;
   currentLabel: string;
+  // Most recent individual results, newest first, capped — a live feed of
+  // "this one worked / didn't" as the scan runs, not every result ever seen.
+  recentResults: TestResult[];
 }

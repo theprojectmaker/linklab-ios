@@ -11,6 +11,7 @@ export interface RunnerOptions {
 }
 
 const SAMPLE_CAP = 3000; // cap on detail rows kept per run (every open/refused + a sample of filtered)
+const RECENT_FEED_CAP = 40; // live "works/doesn't work" feed shown while a scan is running
 
 export class ScanRunner {
   private paused = false;
@@ -22,6 +23,7 @@ export class ScanRunner {
   private errorCount = 0;
   private buckets = new Map<string, CategoryBucket>();
   private sampleResults: TestResult[] = [];
+  private recentResults: TestResult[] = []; // newest first, capped at RECENT_FEED_CAP
   private filteredSampleEvery = 1;
   private startedAt = Date.now();
 
@@ -59,6 +61,9 @@ export class ScanRunner {
       this.buckets.set(key, bucket);
     }
     bucket.total++;
+
+    this.recentResults.unshift(r);
+    if (this.recentResults.length > RECENT_FEED_CAP) this.recentResults.length = RECENT_FEED_CAP;
 
     const keep = () => {
       if (this.sampleResults.length < SAMPLE_CAP) this.sampleResults.push(r);
@@ -118,6 +123,7 @@ export class ScanRunner {
         filteredCount: this.filteredCount,
         errorCount: this.errorCount,
         currentLabel: label,
+        recentResults: this.recentResults.slice(),
       });
     };
 

@@ -8,6 +8,7 @@ import { NetworkSnapshot } from '../../lib/types';
 import { colors } from '../../lib/theme';
 import { ProgressBar } from '../../components/ProgressBar';
 import { StatPill } from '../../components/StatPill';
+import { LiveResultsFeed } from '../../components/LiveResultsFeed';
 
 const CONCURRENCY_PRESETS = [
   { label: 'Gentle', concurrency: 8, delayMs: 8 },
@@ -113,6 +114,7 @@ export default function RunScreen() {
                 <StatPill label="Filtered" value={scan.progress.filteredCount} color={colors.danger} />
               </View>
             )}
+            {scan.progress && <LiveResultsFeed results={scan.progress.recentResults} />}
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {scan.status === 'running' ? (
                 <Pressable onPress={scan.pause} style={{ flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}>
