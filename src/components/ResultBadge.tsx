@@ -6,15 +6,15 @@ function resultVisual(status: TestResult['status']): { text: string; bg: string;
   switch (status) {
     case 'open':
     case 'simulated-open':
-      return { text: 'WORKS', bg: '#113B2E', fg: colors.success };
+      return { text: 'Reachable', bg: '#113B2E', fg: colors.success };
     case 'refused':
-      return { text: 'NO · refused', bg: '#3A2A14', fg: colors.warn };
+      return { text: 'Suspect', bg: '#3A2A14', fg: colors.warn };
     case 'filtered':
     case 'simulated-filtered':
-      return { text: 'NO · blocked', bg: '#3A1414', fg: colors.danger };
+      return { text: 'Blocked', bg: '#3A1414', fg: colors.danger };
     case 'error':
     default:
-      return { text: 'NO · error', bg: '#262F3D', fg: colors.textDim };
+      return { text: 'Error', bg: '#262F3D', fg: colors.textDim };
   }
 }
 

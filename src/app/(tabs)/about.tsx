@@ -58,11 +58,16 @@ export default function AboutScreen() {
           partial runs are still saved to History.
         </Section>
 
-        <Section title="WHAT 'OPEN' / 'REFUSED' / 'FILTERED' MEAN">
-          Open: a TCP connection completed — that port is fully reachable through this network. Refused: the
-          packet reached the destination and it actively rejected the connection — the network did not block it,
-          the destination just isn't listening there. Filtered: no response at all before the timeout — usually
-          means this network (or something between you and the destination) is blocking that port or protocol.
+        <Section title="WHAT 'REACHABLE' / 'SUSPECT' / 'BLOCKED' MEAN">
+          <Text style={{ color: colors.success, fontWeight: '700' }}>Reachable (green):</Text> a TCP connection
+          completed — that port is fully reachable through this network.{'\n\n'}
+          <Text style={{ color: colors.warn, fontWeight: '700' }}>Suspect (amber):</Text> something answered and
+          declined the connection. That's ambiguous on purpose — it can be the real destination legitimately not
+          listening there, or it can be a network middlebox actively resetting traffic it wants to block instead
+          of silently dropping it. Shown as "suspect", not asserted as a real block.{'\n\n'}
+          <Text style={{ color: colors.danger, fontWeight: '700' }}>Blocked (red):</Text> no response at all before
+          the timeout — usually means this network (or something between you and the destination) is silently
+          dropping that port or protocol.
         </Section>
 
         <Section title="LIMITS">

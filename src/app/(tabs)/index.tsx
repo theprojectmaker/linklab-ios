@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View, Pressable, Switch } from 'react-native';
+import { ScrollView, Text, View, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useScan } from '../../lib/scanStore';
 import { describeTargetSet, getTotalTargetCount } from '../../lib/targets';
@@ -8,7 +8,14 @@ import { NetworkSnapshot } from '../../lib/types';
 import { colors } from '../../lib/theme';
 import { ProgressBar } from '../../components/ProgressBar';
 import { StatPill } from '../../components/StatPill';
-import { LiveResultsFeed } from '../../components/LiveResultsFeed';
+import { EndpointList, EndpointFilter } from '../../components/EndpointList';
+
+const FILTER_CHIPS: { label: string; value: EndpointFilter }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Reachable', value: 'reachable' },
+  { label: 'Suspect', value: 'suspect' },
+  { label: 'Blocked', value: 'blocked' },
+];
 
 const CONCURRENCY_PRESETS = [
   { label: 'Gentle', concurrency: 16, delayMs: 2 },
@@ -19,6 +26,8 @@ const CONCURRENCY_PRESETS = [
 export default function RunScreen() {
   const scan = useScan();
   const [network, setNetwork] = useState<NetworkSnapshot | null>(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<EndpointFilter>('all');
   const total = getTotalTargetCount();
 
   useEffect(() => {
@@ -26,6 +35,10 @@ export default function RunScreen() {
   }, []);
 
   const pct = scan.progress ? scan.progress.tested / scan.progress.total : 0;
+  // Re-render the endpoint list roughly every 25 new results instead of on
+  // every single one — keeps filtering/scrolling smooth at high throughput.
+  const listTick = scan.progress ? Math.floor(scan.progress.tested / 25) : 0;
+  const showList = scan.status !== 'idle';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -107,50 +120,100 @@ export default function RunScreen() {
           </Pressable>
         )}
 
+        {scan.progress && (
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <StatPill label="Reachable" value={scan.progress.openCount} color={colors.success} />
+            <StatPill label="Suspect" value={scan.progress.refusedCount} color={colors.warn} />
+            <StatPill label="Blocked" value={scan.progress.filteredCount} color={colors.danger} />
+            <StatPill label="Tested" value={scan.progress.tested.toLocaleString()} />
+          </View>
+        )}
+
         {(scan.status === 'running' || scan.status === 'paused') && (
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: 6 }}>
             <ProgressBar fraction={pct} />
             <Text style={{ color: colors.textDim, fontSize: 12 }}>
               {scan.progress ? `${scan.progress.tested.toLocaleString()} / ${scan.progress.total.toLocaleString()}` : 'Starting…'}
               {scan.progress ? `  (${Math.round(pct * 100)}%)` : ''}
             </Text>
-            {scan.progress && (
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <StatPill label="Open" value={scan.progress.openCount} color={colors.success} />
-                <StatPill label="Refused" value={scan.progress.refusedCount} color={colors.warn} />
-                <StatPill label="Filtered" value={scan.progress.filteredCount} color={colors.danger} />
-              </View>
-            )}
-            {scan.progress && <LiveResultsFeed results={scan.progress.recentResults} />}
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {scan.status === 'running' ? (
-                <Pressable onPress={scan.pause} style={{ flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}>
-                  <Text style={{ color: colors.text, fontWeight: '700' }}>Pause</Text>
-                </Pressable>
-              ) : (
-                <Pressable onPress={scan.resume} style={{ flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}>
-                  <Text style={{ color: colors.text, fontWeight: '700' }}>Resume</Text>
-                </Pressable>
-              )}
-              <Pressable onPress={scan.stop} style={{ flex: 1, backgroundColor: '#3A1414', borderWidth: 1, borderColor: colors.danger, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}>
-                <Text style={{ color: colors.danger, fontWeight: '700' }}>Stop</Text>
-              </Pressable>
-            </View>
           </View>
         )}
 
         {scan.status === 'done' && scan.lastRun && (
-          <View style={{ gap: 10 }}>
-            <Text style={{ color: colors.success, fontWeight: '700' }}>
-              {scan.lastRun.stopped ? 'Stopped early.' : 'Run complete.'} See the Results tab for the full breakdown.
-            </Text>
-            <Pressable
-              onPress={scan.start}
-              style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
-            >
-              <Text style={{ color: colors.text, fontWeight: '700' }}>Run again</Text>
+          <Text style={{ color: colors.success, fontWeight: '700', fontSize: 13 }}>
+            {scan.lastRun.stopped ? 'Stopped early.' : 'Run complete.'} See the Results tab for the full breakdown.
+          </Text>
+        )}
+
+        {(scan.status === 'running' || scan.status === 'paused') && (
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {scan.status === 'running' ? (
+              <Pressable onPress={scan.pause} style={{ flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>Pause</Text>
+              </Pressable>
+            ) : (
+              <Pressable onPress={scan.resume} style={{ flex: 1, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>Resume</Text>
+              </Pressable>
+            )}
+            <Pressable onPress={scan.stop} style={{ flex: 1, backgroundColor: '#3A1414', borderWidth: 1, borderColor: colors.danger, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}>
+              <Text style={{ color: colors.danger, fontWeight: '700' }}>Stop</Text>
             </Pressable>
           </View>
+        )}
+
+        {scan.status === 'done' && (
+          <Pressable
+            onPress={scan.start}
+            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+          >
+            <Text style={{ color: colors.text, fontWeight: '700' }}>Run again</Text>
+          </Pressable>
+        )}
+
+        {showList && (
+          <>
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search endpoints — e.g. apple, azure, github"
+              placeholderTextColor={colors.textDim}
+              style={{
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.cardBorder,
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                color: colors.text,
+                fontSize: 13,
+              }}
+            />
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {FILTER_CHIPS.map((c) => {
+                const active = filter === c.value;
+                return (
+                  <Pressable
+                    key={c.value}
+                    onPress={() => setFilter(c.value)}
+                    style={{
+                      paddingVertical: 7,
+                      paddingHorizontal: 14,
+                      borderRadius: 999,
+                      backgroundColor: active ? colors.accent : 'transparent',
+                      borderWidth: 1,
+                      borderColor: active ? colors.accent : colors.cardBorder,
+                    }}
+                  >
+                    <Text style={{ color: active ? '#06201C' : colors.text, fontWeight: '700', fontSize: 12 }}>{c.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View style={{ backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.cardBorder, paddingHorizontal: 10 }}>
+              <EndpointList results={scan.getAllResults()} filter={filter} search={search} tick={listTick} />
+            </View>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>

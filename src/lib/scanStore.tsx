@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useRef, useState } from 
 import { ScanRunner } from './runner';
 import { captureNetworkSnapshot } from './networkInfo';
 import { saveRun } from './storage';
-import { RunDetail, ScanProgress } from './types';
+import { RunDetail, ScanProgress, TestResult } from './types';
 import { isSimulatedEnvironment } from './reachability';
 
 export type ScanStatus = 'idle' | 'running' | 'paused' | 'done';
@@ -27,6 +27,8 @@ interface ScanContextValue extends ScanState {
   resume: () => void;
   stop: () => void;
   setOptions: (o: Partial<ScanOptions>) => void;
+  /** Every result produced by the current (or just-finished) run, oldest first. Live reference. */
+  getAllResults: () => TestResult[];
 }
 
 const ScanContext = createContext<ScanContextValue | null>(null);
@@ -40,6 +42,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const [options, setOptionsState] = useState<ScanOptions>(DEFAULT_OPTIONS);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const runnerRef = useRef<ScanRunner | null>(null);
+  const finishedResultsRef = useRef<TestResult[]>([]);
 
   const start = useCallback(() => {
     if (runnerRef.current) return;
@@ -52,6 +55,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
       delayMs: options.delayMs,
       onProgress: (p) => setProgress(p),
       onDone: (detail) => {
+        finishedResultsRef.current = runnerRef.current?.getAllResults() ?? [];
         runnerRef.current = null;
         setStatus('done');
         captureNetworkSnapshot()
@@ -92,6 +96,10 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     setOptionsState((prev) => ({ ...prev, ...o }));
   }, []);
 
+  const getAllResults = useCallback(() => {
+    return runnerRef.current?.getAllResults() ?? finishedResultsRef.current;
+  }, []);
+
   const value: ScanContextValue = {
     status,
     progress,
@@ -104,6 +112,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     resume,
     stop,
     setOptions,
+    getAllResults,
   };
 
   return <ScanContext.Provider value={value}>{children}</ScanContext.Provider>;
