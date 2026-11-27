@@ -3,8 +3,15 @@ import { FlatList, Text, View } from 'react-native';
 import { TestResult } from '../lib/types';
 import { colors } from '../lib/theme';
 import { StatusBucket, STATUS_BUCKET_COLOR, statusBucket } from '../lib/statusVisual';
+import { PORT_CATEGORY_LABELS, getPortName } from '../lib/ports';
+import { DEST_CATEGORY_LABELS } from '../lib/destLabels';
 
-export type EndpointFilter = 'all' | StatusBucket;
+export type EndpointFilter = 'all' | StatusBucket | 'remote-worthy';
+
+/** Reachable AND relevant to controlling your own computer remotely — never "could relay arbitrary traffic". */
+function isRemoteWorthy(r: TestResult): boolean {
+  return statusBucket(r.status) === 'reachable' && (r.destCategory === 'apple-icloud' || r.portCategory === 'remote-access');
+}
 
 interface Props {
   results: TestResult[]; // oldest first, live reference — do not mutate
@@ -14,11 +21,12 @@ interface Props {
   tick: number;
 }
 
-const ROW_HEIGHT = 52;
+const ROW_HEIGHT = 56;
 
 function Row({ r }: { r: TestResult }) {
   const bucket = statusBucket(r.status);
   const color = STATUS_BUCKET_COLOR[bucket];
+  const remoteWorthy = isRemoteWorthy(r);
   return (
     <View
       style={{
@@ -34,11 +42,18 @@ function Row({ r }: { r: TestResult }) {
     >
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>
-          {r.host}
-        </Text>
-        <Text numberOfLines={1} style={{ color: colors.textDim, fontSize: 11, marginTop: 1 }}>
-          {r.portCategory} · port {r.port}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text numberOfLines={1} style={{ color: colors.text, fontSize: 14, fontWeight: '600', flexShrink: 1 }}>
+            {r.host}
+          </Text>
+          {remoteWorthy && (
+            <View style={{ backgroundColor: '#14364A', borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1 }}>
+              <Text style={{ color: colors.accent, fontSize: 9, fontWeight: '800' }}>REMOTE</Text>
+            </View>
+          )}
+        </View>
+        <Text numberOfLines={1} style={{ color: colors.textDim, fontSize: 11, marginTop: 2 }}>
+          {getPortName(r.port)} ({r.port}) · {DEST_CATEGORY_LABELS[r.destCategory] ?? r.destCategory}
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
@@ -46,6 +61,7 @@ function Row({ r }: { r: TestResult }) {
           {bucket === 'reachable' ? '✓' : bucket === 'suspect' ? '!' : '✕'}
           {r.latencyMs != null ? ` ${r.latencyMs}ms` : ''}
         </Text>
+        <Text style={{ color: colors.textDim, fontSize: 10, marginTop: 1 }}>{PORT_CATEGORY_LABELS[r.portCategory]}</Text>
       </View>
     </View>
   );
@@ -60,7 +76,11 @@ export function EndpointList({ results, filter, search, tick }: Props) {
     // like a live feed without needing an O(n) reverse/unshift on insert.
     for (let i = results.length - 1; i >= 0; i--) {
       const r = results[i];
-      if (filter !== 'all' && statusBucket(r.status) !== filter) continue;
+      if (filter === 'remote-worthy') {
+        if (!isRemoteWorthy(r)) continue;
+      } else if (filter !== 'all' && statusBucket(r.status) !== filter) {
+        continue;
+      }
       if (q && !r.host.toLowerCase().includes(q)) continue;
       out.push(r);
       if (out.length >= 500) break; // plenty for a scroll window; avoids building huge arrays while typing

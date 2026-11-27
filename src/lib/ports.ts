@@ -110,6 +110,11 @@ function fallbackCategory(port: number): PortCategory {
   return 'other-registered';
 }
 
+/** Friendly service name for a port number, e.g. 443 -> "HTTPS". Falls back to "Port N". */
+export function getPortName(port: number): string {
+  return NAMED_PORTS[port]?.name ?? `Port ${port}`;
+}
+
 /**
  * Builds the catalog of only the ports that actually have a known,
  * real-world service behind them (the NAMED_PORTS table above). Used for the

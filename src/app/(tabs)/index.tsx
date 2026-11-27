@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, View, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useScan } from '../../lib/scanStore';
@@ -15,6 +15,7 @@ const FILTER_CHIPS: { label: string; value: EndpointFilter }[] = [
   { label: 'Reachable', value: 'reachable' },
   { label: 'Suspect', value: 'suspect' },
   { label: 'Blocked', value: 'blocked' },
+  { label: 'Remote-control worthy', value: 'remote-worthy' },
 ];
 
 const CONCURRENCY_PRESETS = [
@@ -28,11 +29,23 @@ export default function RunScreen() {
   const [network, setNetwork] = useState<NetworkSnapshot | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<EndpointFilter>('all');
+  const [setupOpen, setSetupOpen] = useState(true);
+  const hasStartedRef = useRef(false);
   const total = getTotalTargetCount();
 
   useEffect(() => {
     captureNetworkSnapshot().then(setNetwork).catch(() => {});
   }, []);
+
+  // Collapse the setup (network/test-set/throttle) cards out of the way the
+  // first time a run starts, so the stats + live list take over the screen
+  // instead of competing with setup clutter. The user can still re-expand it.
+  useEffect(() => {
+    if (scan.status !== 'idle' && !hasStartedRef.current) {
+      hasStartedRef.current = true;
+      setSetupOpen(false);
+    }
+  }, [scan.status]);
 
   const pct = scan.progress ? scan.progress.tested / scan.progress.total : 0;
   // Re-render the endpoint list roughly every 25 new results instead of on
@@ -59,50 +72,73 @@ export default function RunScreen() {
           </View>
         )}
 
-        <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.cardBorder, gap: 6 }}>
-          <Text style={{ color: colors.textDim, fontSize: 12 }}>CURRENT NETWORK</Text>
-          <Text style={{ color: colors.text, fontSize: 14 }}>
-            {network?.isWifi ? 'Wi-Fi' : network?.isConnected ? 'Connected (non Wi-Fi)' : 'Not connected'}
+        <Pressable
+          onPress={() => setSetupOpen((o) => !o)}
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            backgroundColor: colors.card,
+            borderRadius: 12,
+            padding: 12,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+          }}
+        >
+          <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700' }}>
+            {setupOpen ? 'SETUP' : `${scan.options.concurrency} concurrent · ${total.toLocaleString()} targets`}
           </Text>
-          <Text style={{ color: colors.textDim, fontSize: 12 }}>SSID: {network?.ssid ?? 'unavailable on iOS without special entitlement'}</Text>
-          <Text style={{ color: colors.textDim, fontSize: 12 }}>Device IP: {network?.ipAddress ?? '—'}</Text>
-        </View>
+          <Text style={{ color: colors.textDim, fontSize: 12 }}>{setupOpen ? 'Hide ▾' : 'Show ▸'}</Text>
+        </Pressable>
 
-        <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.cardBorder, gap: 6 }}>
-          <Text style={{ color: colors.textDim, fontSize: 12 }}>TEST SET</Text>
-          <Text style={{ color: colors.text, fontSize: 13 }}>{describeTargetSet()}</Text>
-        </View>
+        {setupOpen && (
+          <>
+            <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.cardBorder, gap: 6 }}>
+              <Text style={{ color: colors.textDim, fontSize: 12 }}>CURRENT NETWORK</Text>
+              <Text style={{ color: colors.text, fontSize: 14 }}>
+                {network?.isWifi ? 'Wi-Fi' : network?.isConnected ? 'Connected (non Wi-Fi)' : 'Not connected'}
+              </Text>
+              <Text style={{ color: colors.textDim, fontSize: 12 }}>SSID: {network?.ssid ?? 'unavailable on iOS without special entitlement'}</Text>
+              <Text style={{ color: colors.textDim, fontSize: 12 }}>Device IP: {network?.ipAddress ?? '—'}</Text>
+            </View>
 
-        <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.cardBorder, gap: 10 }}>
-          <Text style={{ color: colors.textDim, fontSize: 12 }}>THROTTLE</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {CONCURRENCY_PRESETS.map((p) => {
-              const active = scan.options.concurrency === p.concurrency && scan.options.delayMs === p.delayMs;
-              return (
-                <Pressable
-                  key={p.label}
-                  disabled={scan.status === 'running' || scan.status === 'paused'}
-                  onPress={() => scan.setOptions({ concurrency: p.concurrency, delayMs: p.delayMs })}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 8,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    backgroundColor: active ? colors.accent : 'transparent',
-                    borderWidth: 1,
-                    borderColor: active ? colors.accent : colors.cardBorder,
-                  }}
-                >
-                  <Text style={{ color: active ? '#06201C' : colors.text, fontWeight: '700', fontSize: 13 }}>{p.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={{ color: colors.textDim, fontSize: 11 }}>
-            {scan.options.concurrency} concurrent attempts, {scan.options.delayMs}ms delay between dispatches.
-            Lower = gentler on battery and the network, slower to finish.
-          </Text>
-        </View>
+            <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.cardBorder, gap: 6 }}>
+              <Text style={{ color: colors.textDim, fontSize: 12 }}>TEST SET</Text>
+              <Text style={{ color: colors.text, fontSize: 13 }}>{describeTargetSet()}</Text>
+            </View>
+
+            <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.cardBorder, gap: 10 }}>
+              <Text style={{ color: colors.textDim, fontSize: 12 }}>THROTTLE</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {CONCURRENCY_PRESETS.map((p) => {
+                  const active = scan.options.concurrency === p.concurrency && scan.options.delayMs === p.delayMs;
+                  return (
+                    <Pressable
+                      key={p.label}
+                      disabled={scan.status === 'running' || scan.status === 'paused'}
+                      onPress={() => scan.setOptions({ concurrency: p.concurrency, delayMs: p.delayMs })}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                        alignItems: 'center',
+                        backgroundColor: active ? colors.accent : 'transparent',
+                        borderWidth: 1,
+                        borderColor: active ? colors.accent : colors.cardBorder,
+                      }}
+                    >
+                      <Text style={{ color: active ? '#06201C' : colors.text, fontWeight: '700', fontSize: 13 }}>{p.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={{ color: colors.textDim, fontSize: 11 }}>
+                {scan.options.concurrency} concurrent attempts, {scan.options.delayMs}ms delay between dispatches.
+                Lower = gentler on battery and the network, slower to finish.
+              </Text>
+            </View>
+          </>
+        )}
 
         {scan.fatalError && (
           <View style={{ backgroundColor: '#3A1414', borderColor: colors.danger, borderWidth: 1, borderRadius: 10, padding: 10 }}>
