@@ -4,6 +4,7 @@ import { useScan } from '../../lib/scanStore';
 import { colors } from '../../lib/theme';
 import { StatPill } from '../../components/StatPill';
 import { BucketRow } from '../../components/BucketRow';
+import { RemoteControlCheck } from '../../components/RemoteControlCheck';
 
 export default function ResultsScreen() {
   const scan = useScan();
@@ -24,11 +25,13 @@ export default function ResultsScreen() {
               {run.simulated ? ' (SIMULATED, web preview)' : ''}
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <StatPill label="Open" value={run.openCount} color={colors.success} />
-              <StatPill label="Refused" value={run.refusedCount} color={colors.warn} />
-              <StatPill label="Filtered" value={run.filteredCount} color={colors.danger} />
+              <StatPill label="Reachable" value={run.openCount} color={colors.success} />
+              <StatPill label="Suspect" value={run.refusedCount} color={colors.warn} />
+              <StatPill label="Blocked" value={run.filteredCount} color={colors.danger} />
               <StatPill label="Errors" value={run.errorCount} color={colors.textDim} />
             </View>
+
+            <RemoteControlCheck buckets={run.buckets} />
 
             <Text style={{ color: colors.textDim, fontSize: 12, marginTop: 6 }}>BY CATEGORY (tap to expand)</Text>
             {run.buckets

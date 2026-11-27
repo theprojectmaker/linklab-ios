@@ -7,6 +7,7 @@ import { RunDetail } from '../../lib/types';
 import { colors } from '../../lib/theme';
 import { StatPill } from '../../components/StatPill';
 import { BucketRow } from '../../components/BucketRow';
+import { RemoteControlCheck } from '../../components/RemoteControlCheck';
 
 export default function RunDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,11 +36,12 @@ export default function RunDetailScreen() {
               {run.tested.toLocaleString()} / {run.totalTargets.toLocaleString()} tested
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <StatPill label="Open" value={run.openCount} color={colors.success} />
-              <StatPill label="Refused" value={run.refusedCount} color={colors.warn} />
-              <StatPill label="Filtered" value={run.filteredCount} color={colors.danger} />
+              <StatPill label="Reachable" value={run.openCount} color={colors.success} />
+              <StatPill label="Suspect" value={run.refusedCount} color={colors.warn} />
+              <StatPill label="Blocked" value={run.filteredCount} color={colors.danger} />
               <StatPill label="Errors" value={run.errorCount} color={colors.textDim} />
             </View>
+            <RemoteControlCheck buckets={run.buckets} />
             <Text style={{ color: colors.textDim, fontSize: 12, marginTop: 6 }}>BY CATEGORY</Text>
             {run.buckets
               .slice()
